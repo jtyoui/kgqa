@@ -1,4 +1,4 @@
-module github.com/jtyoui/KGQA
+module github.com/jtyoui/kgqa
 
 go 1.17
 

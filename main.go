@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-middleware/ginDist"
 	"io"
+	"math/rand"
 	"net/http"
 	"strings"
 	"sync"
@@ -29,7 +30,7 @@ var similar = strings.Split(cfs, "\n")
 
 type Result struct {
 	sync.Mutex
-	Question string   `json:"-"`
+	People   string   `json:"people"`
 	Data     []string `json:"data"`
 	Code     int      `json:"code"`
 	Sentence []string `json:"sentence"`
@@ -57,13 +58,13 @@ func (r *Result) getResult(wg *sync.WaitGroup) {
 			continue
 		}
 		var entity, relation, node = false, false, false
-		if strings.Contains(r.Question, data[0]) {
+		if strings.Contains(r.People, data[0]) {
 			entity = true
 		}
-		if strings.Contains(r.Question, data[1]) {
+		if strings.Contains(r.People, data[1]) {
 			relation = true
 		}
-		if strings.Contains(r.Question, data[2]) {
+		if strings.Contains(r.People, data[2]) {
 			node = true
 		}
 		if entity && relation {
@@ -126,20 +127,32 @@ func (r *Result) compareString(wg *sync.WaitGroup) {
 	cg := &sync.WaitGroup{}
 	for _, value := range similar {
 		cg.Add(1)
-		go r.levenshteinDistance(value, r.Question, cg)
+		go r.levenshteinDistance(value, r.People, cg)
 	}
 	cg.Wait()
 }
 
+func randString() []string {
+	length := len(similar)
+	r := make([]string, 0, 5)
+	for i := 0; i < 5; i++ {
+		index := rand.Int() % length
+		r = append(r, similar[index])
+	}
+	return r
+}
+
 func Index(c *gin.Context) {
 	question := c.Query("question")
-	r := Result{Code: 200, Question: question}
-	r.Sentence = make([]string, 0, 5)
+	r := Result{Code: 200, People: question}
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
 	go r.getResult(wg)
 	go r.compareString(wg)
 	wg.Wait()
+	if r.Sentence == nil {
+		r.Sentence = randString()
+	}
 	c.JSON(http.StatusOK, &r)
 }
 

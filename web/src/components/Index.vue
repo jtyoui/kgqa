@@ -74,41 +74,38 @@ const content = reactive([
 const people = ref("")
 
 function onSubmit() {
-  axios.get("/wss/qa?question=" + people.value).then(data => {
-    console.log(data.data)
-    if (data.data.code === 200) {
-      let value = ""
-      data.data.data.forEach(v => {
-        value = value + "、" + v;
-      })
-      const result = {
-        "people": people.value,
-        "robot": value.substr(1),
-        "sentence": data.data.sentence,
-        "greetings": "👇 还为您找到以下类似问题哦：",
+  if (people.value.trim() !== "") {
+    axios.get("/wss/qa?question=" + people.value).then(data => {
+      const resp = data.data
+      if (resp.code === 200) {
+        let value = ""
+        resp.data.forEach(v => {
+          value = value + "、" + v;
+        })
+        const result = {
+          "people": resp.people,
+          "robot": value.substr(1),
+          "sentence": resp.sentence,
+          "greetings": "👇 还为您找到以下类似问题哦：",
+        }
+        content.push(result)
+      } else if (resp.code === 201) {
+        const result = {
+          "people": resp.people,
+          "robot": "",
+          "sentence": resp.sentence,
+          "greetings": "💔 非常抱歉，小智没有找到您想要的答案呢，您可以这样问试试：",
+        }
+        content.push(result)
+      } else {
+        alert(data.data.msg)
       }
-      content.push(result)
-      people.value = ""
-      nextTick(() => {
-        const scroll = document.getElementById('scrollText')
-        scroll.scrollTop = scroll.scrollHeight
-      })
-    } else if (data.data.code === 201) {
-      const result = {
-        "people": people.value,
-        "robot": "",
-        "sentence": data.data.sentence,
-        "greetings": "💔 非常抱歉，小智没有找到您想要的答案呢，您可以这样问试试：",
-      }
-      content.push(result)
-      people.value = ""
-      nextTick(() => {
-        const scroll = document.getElementById('scrollText')
-        scroll.scrollTop = scroll.scrollHeight
-      })
-    } else {
-      alert(data.data.msg)
-    }
+    })
+  }
+  people.value = ""
+  nextTick(() => {
+    const scroll = document.getElementById('scrollText')
+    scroll.scrollTop = scroll.scrollHeight
   })
 }
 
