@@ -1,0 +1,152 @@
+version: '3'
+services:
+  neo4j:
+    restart: always
+    image: 'neo4j:4.2.2'
+    container_name: neo4j
+    ports:
+      - '7474:7474'
+      - '7687:7687'
+    networks:
+      - net-es
+    environment:
+      - 'NEO4J_AUTH=neo4j/password'
+
+  es01:
+    restart: always
+    image: 'elasticsearch:6.7.1'
+    container_name: es01
+    ports:
+      - '9200:9200'
+      - '9300:9300'
+    volumes:
+      - ./data/es1.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+      - ./data/analysis-ik:/usr/share/elasticsearch/plugins/analysis-ik
+    environment:
+      - 'ES_JAVA_OPTS=-Xms256m -Xmx256m'
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    networks:
+      - net-es
+
+  es02:
+    restart: always
+    image: 'elasticsearch:6.7.1'
+    container_name: es02
+    ports:
+      - '9201:9200'
+      - '9301:9300'
+    volumes:
+      - ./data/es2.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+      - ./data/analysis-ik:/usr/share/elasticsearch/plugins/analysis-ik
+    environment:
+      - 'ES_JAVA_OPTS=-Xms256m -Xmx256m'
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    networks:
+      - net-es
+
+  es03:
+    restart: always
+    image: 'elasticsearch:6.7.1'
+    container_name: es03
+    ports:
+      - '9202:9200'
+      - '9302:9300'
+    volumes:
+      - ./data/es3.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+      - ./data/analysis-ik:/usr/share/elasticsearch/plugins/analysis-ik
+    environment:
+      - 'ES_JAVA_OPTS=-Xms256m -Xmx256m'
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    networks:
+      - net-es
+
+  kibana:
+    restart: always
+    image: 'kibana:6.7.1'
+    container_name: kibana
+    ports:
+      - '5601:5601'
+    volumes:
+      - ./data/kibana.yml:/usr/share/kibana/config/kibana.yml
+    networks:
+      - net-es
+
+  mysql:
+    restart: always
+    image: 'mysql:8.0'
+    container_name: mysql
+    ports:
+      - '3306:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+    networks:
+      - net-es
+    command: --default-authentication-plugin=mysql_native_password
+
+  kgqa:
+    restart: always
+    build:
+      context: .
+    image: kgqa
+    container_name: kgqa
+    ports:
+      - '11000:80'
+    networks:
+      - net-es
+    volumes:
+      - ./data/questions.txt:/data/questions.txt
+      - ./data/relation.csv:/data/relation.csv
+
+  redis:
+    restart: always
+    image: 'redis:alpine3.12'
+    container_name: redis
+    ports:
+      - '6379:6379'
+    networks:
+      - net-es
+
+  relation:
+    restart: always
+    build:
+      context: relation
+    image: relation
+    container_name: relation
+    ports:
+      - "11001:80"
+    networks:
+      - net-es
+
+  front:
+    restart: always
+    image: nginx:latest
+    ports:
+      - '80:80'
+    container_name: front
+    networks:
+      - net-es
+    volumes:
+      - ./web/dist:/etc/nginx/html
+      - ./nginx.conf:/etc/nginx/conf.d/wss.conf
+
+networks:
+  net-es:
+    driver: bridge

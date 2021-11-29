@@ -1,0 +1,5 @@
+elasticsearch==7.10.1
+pymysql==1.0.2
+redis==3.5.3
+python-redis-lock==3.7.0
+py2neo==2020.1.1
