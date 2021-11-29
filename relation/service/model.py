@@ -1,3 +1,5 @@
+import os.path
+
 import torch
 import torch.nn as nn
 from pytorch_pretrained_bert import BertModel, BertTokenizer
@@ -31,9 +33,11 @@ class Config:
     """配置参数"""
 
     def __init__(self):
-        self.dir = '/app/model/'
+        oneself = os.path.dirname(__file__)
+        parent_dir = os.path.dirname(oneself)
+        self.dir = os.path.join(parent_dir, 'model')
         self.class_list = [str(i) for i in range(len(key))]  # 类别名单
-        self.save_path = self.dir + 'ERNIE'
+        self.save_path = os.path.join(self.dir, 'ERNIE')
         self.device = torch.device('cpu')
         self.require_improvement = 1000  # 若超过1000batch效果还没提升，则提前结束训练
         self.num_classes = len(self.class_list)  # 类别数
@@ -41,7 +45,7 @@ class Config:
         self.batch_size = 128  # mini-batch大小
         self.pad_size = 32  # 每句话处理成的长度(短填长切)
         self.learning_rate = 5e-5  # 学习率
-        self.bert_path = self.dir + 'bert'
+        self.bert_path = os.path.join(self.dir, 'bert')
         self.tokenizer = BertTokenizer.from_pretrained(self.bert_path)
         self.hidden_size = 768
 

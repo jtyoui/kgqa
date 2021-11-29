@@ -1,3 +1,6 @@
 .idea/
-model/
+relation/model/
 *.pyc
+model.tar.gz
+venv
+node_modules
