@@ -1,6 +1,7 @@
 // Package main
 // @Time  : 2021/11/26 上午9:49
 // @Author: Jtyoui@qq.com
+// 药用植物害虫仙人掌白盾蛤的简单介绍
 package main
 
 import (
@@ -15,6 +16,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 )
 
 //go:embed web/dist
@@ -29,7 +31,6 @@ var cfs string
 var similar = strings.Split(cfs, "\n")
 
 type Result struct {
-	sync.Mutex
 	People   string   `json:"people"`
 	Data     []string `json:"data"`
 	Code     int      `json:"code"`
@@ -114,11 +115,9 @@ func (r *Result) levenshteinDistance(s, t string, wg *sync.WaitGroup) {
 	}
 	flag := d[len(s)][len(t)]
 	if flag < 10 && flag > 0 {
-		r.Lock()
 		if len(r.Sentence) < 5 {
 			r.Sentence = append(r.Sentence, s)
 		}
-		r.Unlock()
 	}
 }
 
@@ -132,28 +131,31 @@ func (r *Result) compareString(wg *sync.WaitGroup) {
 	cg.Wait()
 }
 
-func randString() []string {
+func (r *Result) randString() {
 	length := len(similar)
-	r := make([]string, 0, 5)
 	for i := 0; i < 5; i++ {
 		index := rand.Int() % length
-		r = append(r, similar[index])
+		r.Sentence = append(r.Sentence, similar[index])
 	}
-	return r
 }
 
 func Index(c *gin.Context) {
+	start := time.Now().UnixMilli()
 	question := c.Query("question")
 	r := Result{Code: 200, People: question}
+	r.Sentence = make([]string, 0, 5)
+
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
 	go r.getResult(wg)
 	go r.compareString(wg)
 	wg.Wait()
-	if r.Sentence == nil {
-		r.Sentence = randString()
+
+	if len(r.Sentence) == 0 {
+		r.randString()
 	}
 	c.JSON(http.StatusOK, &r)
+	fmt.Println(time.Now().UnixMilli() - start)
 }
 
 func main() {
