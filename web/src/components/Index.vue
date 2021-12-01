@@ -32,7 +32,8 @@
                 <span>{{ msg.greetings }}</span>
               </template>
               <div v-for="(recommend,index) of msg.sentence" :key="recommend" class="text item">
-                {{ index + 1 }}、{{ recommend }}
+                {{ index + 1 }}、
+                <el-button type="text" size="mini" @click="onSubmit(recommend)">{{ recommend }}</el-button>
                 <hr/>
               </div>
             </el-card>
@@ -45,7 +46,8 @@
         <el-input :prefix-icon="Search" class="input" placeholder="请输入一句话" v-model="people" @keydown.enter="onSubmit"
                   clearable>
           <template #append>
-            <el-button type="success" @click="onSubmit" :icon="Message" auto-insert-space>发送</el-button>
+            <el-button type="success" @click="onSubmit('')" :icon="Message" auto-insert-space :loading="load">发送
+            </el-button>
           </template>
         </el-input>
       </el-footer>
@@ -63,6 +65,7 @@ import {Message, Search} from '@element-plus/icons'
 const robotHead = ref("")
 const peopleHead = ref("")
 const logoHead = ref("")
+const load = ref(false)
 
 const content = reactive([
   {
@@ -73,9 +76,13 @@ const content = reactive([
   }])
 const people = ref("")
 
-function onSubmit() {
+function onSubmit(value) {
+  if (value !== "") {
+    people.value = value
+  }
   if (people.value.trim() !== "") {
-    axios.get("/wss/qa?question=" + people.value).then(data => {
+    load.value = true
+    axios.get("http://localhost:16541/wss/qa?question=" + people.value).then(data => {
       const resp = data.data
       if (resp.code === 200) {
         let value = ""
@@ -89,6 +96,12 @@ function onSubmit() {
           "greetings": "👇 还为您找到以下类似问题哦：",
         }
         content.push(result)
+        people.value = ""
+        load.value = false
+        nextTick(() => {
+          const scroll = document.getElementById('scrollText')
+          scroll.scrollTop = scroll.scrollHeight
+        })
       } else if (resp.code === 201) {
         const result = {
           "people": resp.people,
@@ -97,16 +110,18 @@ function onSubmit() {
           "greetings": "💔 非常抱歉，小智没有找到您想要的答案呢，您可以这样问试试：",
         }
         content.push(result)
+        people.value = ""
+        load.value = false
+        nextTick(() => {
+          const scroll = document.getElementById('scrollText')
+          scroll.scrollTop = scroll.scrollHeight
+        })
       } else {
         alert(data.data.msg)
+        load.value = false
       }
     })
   }
-  people.value = ""
-  nextTick(() => {
-    const scroll = document.getElementById('scrollText')
-    scroll.scrollTop = scroll.scrollHeight
-  })
 }
 
 onMounted(() => {

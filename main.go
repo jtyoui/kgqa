@@ -153,6 +153,8 @@ func Index(c *gin.Context) {
 
 	if len(r.Sentence) == 0 {
 		r.randString()
+	} else {
+		r.Sentence = r.Sentence[:5]
 	}
 	c.JSON(http.StatusOK, &r)
 }
