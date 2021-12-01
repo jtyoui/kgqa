@@ -1,7 +1,6 @@
 // Package main
 // @Time  : 2021/11/26 上午9:49
 // @Author: Jtyoui@qq.com
-// 药用植物害虫仙人掌白盾蛤的简单介绍
 package main
 
 import (
@@ -16,7 +15,6 @@ import (
 	"net/http"
 	"strings"
 	"sync"
-	"time"
 )
 
 //go:embed web/dist
@@ -31,6 +29,7 @@ var cfs string
 var similar = strings.Split(cfs, "\n")
 
 type Result struct {
+	sync.Mutex
 	People   string   `json:"people"`
 	Data     []string `json:"data"`
 	Code     int      `json:"code"`
@@ -84,8 +83,7 @@ func (r *Result) getResult(wg *sync.WaitGroup) {
 	r.Data = result
 }
 
-func (r *Result) levenshteinDistance(s, t string, wg *sync.WaitGroup) {
-	defer wg.Done()
+func levenshteinDistance(s, t string) int {
 	d := make([][]int, len(s)+1)
 	for i := range d {
 		d[i] = make([]int, len(t)+1)
@@ -114,11 +112,7 @@ func (r *Result) levenshteinDistance(s, t string, wg *sync.WaitGroup) {
 
 	}
 	flag := d[len(s)][len(t)]
-	if flag < 10 && flag > 0 {
-		if len(r.Sentence) < 5 {
-			r.Sentence = append(r.Sentence, s)
-		}
-	}
+	return flag
 }
 
 func (r *Result) compareString(wg *sync.WaitGroup) {
@@ -126,7 +120,14 @@ func (r *Result) compareString(wg *sync.WaitGroup) {
 	cg := &sync.WaitGroup{}
 	for _, value := range similar {
 		cg.Add(1)
-		go r.levenshteinDistance(value, r.People, cg)
+		go func(value string) {
+			defer cg.Done()
+			if len(r.Sentence) < 5 {
+				if levenshteinDistance(value, r.People) < 10 {
+					r.Sentence = append(r.Sentence, value)
+				}
+			}
+		}(value)
 	}
 	cg.Wait()
 }
@@ -140,7 +141,6 @@ func (r *Result) randString() {
 }
 
 func Index(c *gin.Context) {
-	start := time.Now().UnixMilli()
 	question := c.Query("question")
 	r := Result{Code: 200, People: question}
 	r.Sentence = make([]string, 0, 5)
@@ -155,7 +155,6 @@ func Index(c *gin.Context) {
 		r.randString()
 	}
 	c.JSON(http.StatusOK, &r)
-	fmt.Println(time.Now().UnixMilli() - start)
 }
 
 func main() {
